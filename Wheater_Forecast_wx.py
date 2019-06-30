@@ -102,7 +102,7 @@ def get_hourly_msg(location):
         hourly_msg = location
         hourly_msg += '接下来两小时将有降雨，出门记得带伞\n'
         for i in range(2):
-            hourly_msg += rain_hours[i] +'点的天气状况为'+ hourly_foreast_list[i]['cond_txt']+ ',下雨的概率为' +  hourly_foreast_list[i]['pop'] + '%\n'
+            hourly_msg += re.split(r'[ :]', hourly_foreast_list[i]['time'])[1] +'点的天气状况为'+ hourly_foreast_list[i]['cond_txt']+ ',下雨的概率为' +  hourly_foreast_list[i]['pop'] + '%\n'
         return hourly_msg
     else:
         return ''
