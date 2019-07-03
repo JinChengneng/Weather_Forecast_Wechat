@@ -7,12 +7,23 @@ import datetime
 import time
 import numpy as np
 
-def get_rain_hour_count_dict(location_list):
-    rain_hour_count_dict = {}
-    for location in location_list:
+# 通过和风接口获取天气预报,分为daily和hourly两种类型
+def get_foreast(location, foreast_type):
+    if foreast_type == 'hourly':
         response = requests.get('https://api.heweather.net/s6/weather/hourly?location='+location+'&key=0f0fc22e93634ba0b796c46fdb88f1a8')
         result = response.json()
         hourly_foreast_list = result['HeWeather6'][0]['hourly']
+        return hourly_foreast_list
+    elif foreast_type == 'daily':
+        response = requests.get('https://api.heweather.net/s6/weather/forecast?location='+location+'&key=0f0fc22e93634ba0b796c46fdb88f1a8')
+        result = response.json()
+        daily_foreast = result['HeWeather6'][0]['daily_forecast']
+        return daily_foreast
+
+def get_rain_hour_count_dict(location_list):
+    rain_hour_count_dict = {}
+    for location in location_list:
+        hourly_foreast_list = get_foreast(location, 'hourly')
     
         step = 17 #7点至23点共17小时
         rain_hours = get_rain_hours(hourly_foreast_list, step)
@@ -54,13 +65,8 @@ def combine(a):
 # 生成每日天气预报
 def get_daily_msg(location):
     
-    response = requests.get('https://api.heweather.net/s6/weather/forecast?location='+location+'&key=0f0fc22e93634ba0b796c46fdb88f1a8')
-    result = response.json()
-    daily_foreast = result['HeWeather6'][0]['daily_forecast']
-    
-    response = requests.get('https://api.heweather.net/s6/weather/hourly?location='+location+'&key=0f0fc22e93634ba0b796c46fdb88f1a8')
-    result = response.json()
-    hourly_foreast_list = result['HeWeather6'][0]['hourly']
+    daily_foreast = get_foreast(location, 'daily')
+    hourly_foreast_list = get_foreast(location,'hourly')
     
     today=datetime.date.today()
     tomorrow = today + datetime.timedelta(days=1)
@@ -104,10 +110,8 @@ def get_daily_msg_dict(location_list):
 
 # 生成两小时天气预报
 def get_hourly_msg(location):
-     
-    response = requests.get('https://api.heweather.net/s6/weather/hourly?location='+location+'&key=0f0fc22e93634ba0b796c46fdb88f1a8')
-    result = response.json()
-    hourly_foreast_list = result['HeWeather6'][0]['hourly']
+    
+    hourly_foreast_list = get_foreast(location, 'hourly')
     
     step = 2
     rain_hours = get_rain_hours(hourly_foreast_list, step) 
@@ -192,7 +196,7 @@ if __name__ == '__main__':
                             target_names = targets[location]
                             for target in target_names:
                                 morning_msg = location +'今日将连续降雨超过8小时，已关闭今日两小时降雨预报，出门记得带伞'
-                                print(morning_msg, target)
+#                                 print(morning_msg, target)
                                 send_msg(morning_msg, target)
                         
                 # 发送两小时天气预报
@@ -203,6 +207,7 @@ if __name__ == '__main__':
                         target_names = targets[location]
                         for target in target_names:
                             send_msg(hourly_msg, target)
+#                             print(hourly_msg, target)
             
                 # 每晚21点发送第二天天气预报
                 if (localtime.tm_hour == daily_notification_time and localtime.tm_min == 0):
@@ -212,6 +217,7 @@ if __name__ == '__main__':
                         target_names = targets[location]
                         for target in target_names: 
                             send_msg(daily_msg, target)
+#                             print(daily_msg, target)
                     
             # 消息发送后，睡眠59分钟
             time.sleep(59 * 60)
