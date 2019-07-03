@@ -7,6 +7,20 @@ import datetime
 import time
 import numpy as np
 
+def get_rain_hour_count_dict(location_list):
+    rain_hour_count_dict = {}
+    for location in location_list:
+        response = requests.get('https://api.heweather.net/s6/weather/hourly?location='+location+'&key=0f0fc22e93634ba0b796c46fdb88f1a8')
+        result = response.json()
+        hourly_foreast_list = result['HeWeather6'][0]['hourly']
+    
+        step = 17 #7点至23点共17小时
+        rain_hours = get_rain_hours(hourly_foreast_list, step)
+        rain_hour_count_dict[location] = len(rain_hours)
+        
+    return rain_hour_count_dict
+    
+
 # 根据hourly_foreast_list，获取接下来step个小时的下雨时间
 def get_rain_hours(hourly_foreast_list, step):
     hours = [ re.split(r'[ :]', hourly_foreast_list[x]['time'])[1] for x in range(step)]
@@ -130,18 +144,29 @@ if __name__ == '__main__':
           '南山':['甄淑怡','梁奕菡']}
     # 每日天气预报发送时间
     daily_notification_time = 21
+    morning_notification_time = 7
     # 降雨提醒的阈值
     pop_threshhold = 60
+    rain_hours_threshhold = 8
     
     location_list = list(targets.keys())
     
     # 启动微信机器人
     bot = Bot(console_qr=True)
+#     bot = Bot()
     
     # 计算当前距离下一个整点的时间，睡眠至下个整点前一分钟
     localtime = time.localtime(time.time())
     offset = 59 - localtime.tm_min
     time.sleep(offset * 60)
+    
+    # 初始化
+    hourly_msg_targets = []
+    rain_hour_count_dict = get_rain_hour_count_dict(location_list)
+    for location in targets:
+        # 如果降雨没有超过阈值，开启两小时预报
+        if rain_hour_count_dict[location] < rain_hours_threshhold:
+            hourly_msg_targets.append(location)
     
     while(True):
         localtime = time.localtime(time.time())
@@ -149,17 +174,37 @@ if __name__ == '__main__':
         time.sleep(5)
         
         if(localtime.tm_min == 0):
-            # 当时间介于7点至23点之间发送两小时天气预报
+            
+            # 当时间介于7点至23点之间发送天气预报
             if(localtime.tm_hour >=7 and localtime.tm_hour <=23):
+                
+                # 每天早上7点统计当天需要发送两小时天气预报的城市，连续降雨超过8小时的城市关闭两小时天气预报
+                if(localtime.tm_hour == morning_notification_time and localtime.tm_min == 0):
+                    hourly_msg_targets = []
+                    rain_hour_count_dict = get_rain_hour_count_dict(location_list)
+                    print(rain_hour_count_dict)
+                    for location in targets:
+                        # 如果降雨没有超过阈值，开启两小时预报
+                        if rain_hour_count_dict[location] < rain_hours_threshhold:
+                            hourly_msg_targets.append(location)
+                        # 如果降雨超过阈值，关闭两小时预报
+                        elif rain_hour_count_dict[location] >= rain_hours_threshhold:
+                            target_names = targets[location]
+                            for target in target_names:
+                                morning_msg = location +'今日将连续降雨超过8小时，已关闭今日两小时降雨预报，出门记得带伞'
+                                print(morning_msg, target)
+                                send_msg(morning_msg, target)
+                        
+                # 发送两小时天气预报
                 hourly_msg_dict = get_hourly_msg_dict(location_list)
-                print(hourly_msg_dict)
-                for location in targets:
+                for location in hourly_msg_targets:
                     hourly_msg = hourly_msg_dict[location]
                     if hourly_msg != '':
                         target_names = targets[location]
                         for target in target_names:
                             send_msg(hourly_msg, target)
             
+                # 每晚21点发送第二天天气预报
                 if (localtime.tm_hour == daily_notification_time and localtime.tm_min == 0):
                     daily_msg_dict = get_daily_msg_dict(location_list)
                     for location in targets:
@@ -167,7 +212,6 @@ if __name__ == '__main__':
                         target_names = targets[location]
                         for target in target_names: 
                             send_msg(daily_msg, target)
-#                             print(daily_msg, target)
                     
             # 消息发送后，睡眠59分钟
             time.sleep(59 * 60)
