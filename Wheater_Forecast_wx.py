@@ -10,12 +10,12 @@ import numpy as np
 # 通过和风接口获取天气预报,分为daily和hourly两种类型
 def get_foreast(location, foreast_type):
     if foreast_type == 'hourly':
-        response = requests.get('https://api.heweather.net/s6/weather/hourly?location='+location+'&key=0f0fc22e93634ba0b796c46fdb88f1a8')
+        response = requests.get('https://api.heweather.net/s6/weather/hourly?location='+location+'&key=yourkey')
         result = response.json()
         hourly_foreast_list = result['HeWeather6'][0]['hourly']
         return hourly_foreast_list
     elif foreast_type == 'daily':
-        response = requests.get('https://api.heweather.net/s6/weather/forecast?location='+location+'&key=0f0fc22e93634ba0b796c46fdb88f1a8')
+        response = requests.get('https://api.heweather.net/s6/weather/forecast?location='+location+'&key=yourkey')
         result = response.json()
         daily_foreast = result['HeWeather6'][0]['daily_forecast']
         return daily_foreast
@@ -144,8 +144,8 @@ def send_msg(msg, target):
 
 if __name__ == '__main__':
 
-    targets = {'临海':['曹超芹小天使'],
-          '南山':['甄淑怡','梁奕菡']}
+    targets = {'location':['wechat_name'],
+          'location':['wechat_name','wechat_name']}
     # 每日天气预报发送时间
     daily_notification_time = 21
     morning_notification_time = 7
