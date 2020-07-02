@@ -196,7 +196,6 @@ if __name__ == '__main__':
                             target_names = targets[location]
                             for target in target_names:
                                 morning_msg = location +'今日将连续降雨超过8小时，已关闭今日两小时降雨预报，出门记得带伞'
-#                                 print(morning_msg, target)
                                 send_msg(morning_msg, target)
                         
                 # 发送两小时天气预报
@@ -207,7 +206,6 @@ if __name__ == '__main__':
                         target_names = targets[location]
                         for target in target_names:
                             send_msg(hourly_msg, target)
-#                             print(hourly_msg, target)
             
                 # 每晚21点发送第二天天气预报
                 if (localtime.tm_hour == daily_notification_time and localtime.tm_min == 0):
@@ -217,7 +215,6 @@ if __name__ == '__main__':
                         target_names = targets[location]
                         for target in target_names: 
                             send_msg(daily_msg, target)
-#                             print(daily_msg, target)
                     
             # 消息发送后，睡眠59分钟
             time.sleep(59 * 60)
